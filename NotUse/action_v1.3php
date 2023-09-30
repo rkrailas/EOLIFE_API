@@ -1,10 +1,7 @@
 <?php
-// ===Version 1.4 (30 Sep 23)===
-// - Edit AddSales ให้รองรับสร้างสัญญาให้บริการก่อนซื้อ
-
-// ===Version 1.3 (23 Sep 23)===
-// - Fixed ReceiveItems ตรวจสอบว่ามีการรับ Serial No นี้แล้วหรือยัง ตัด posted=true ออกไป
-// - Fixed TranferItems การแยก Case S/N และ No S/N
+// Version 1.3 (23 Sep 23)
+// Fixed ReceiveItems ตรวจสอบว่ามีการรับ Serial No นี้แล้วหรือยัง ตัด posted=true ออกไป
+// Fixed TranferItems การแยก Case S/N และ No S/N
 
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Headers: *");
@@ -179,13 +176,6 @@ if ($received_data->action == "AddSales") {
             }
             //.Account Code บัญชีลูกหนี้
 
-            $gldescription = "";
-            if ($received_data->data->soreturn == "N") {
-                $gldescription = "ขายสินค้า-ลูกค้า:" . $received_data->data->customer->name . "-ใบสั่งขาย:" . $received_data->data->snumber;
-            }elseif ($received_data->data->soreturn == "V") {
-                $gldescription = "ให้บริการ-ลูกค้า:" . $received_data->data->customer->name . "-ใบแจ้งหนี้:" . $received_data->data->snumber;
-            }
-
             $data = [
                 'customerid' => $received_data->data->customer->customerid,
                 'snumber' => $received_data->data->snumber,
@@ -200,11 +190,8 @@ if ($received_data->action == "AddSales") {
                 'salestax' => $received_data->data->salestax,
                 'exclusivetax' => '1',
                 'closed' => '1',
-                'taxrate' => $received_data->data->taxratestd,
                 'taxratestd' => $received_data->data->taxratestd,
                 'salesaccount' => $salesaccount,
-                'soreturn' => $received_data->data->soreturn,
-                'gldescription' => $gldescription,
                 'employee_id' => "Front-end",
                 'transactiondate' => date("Y-m-d H:i:s"),
             ];
@@ -237,9 +224,9 @@ if ($received_data->action == "AddSales") {
             }
 
             $strsql = "INSERT INTO sales(customerid,snumber,sonumber,sodate,journaldate,deliverydate,expirydate,duedate,sodiscount,sototal,salestax
-                        ,exclusivetax,closed,taxrate,taxratestd,salesaccount,soreturn,gldescription,employee_id,transactiondate)
+                        ,exclusivetax,closed,taxratestd,salesaccount,employee_id,transactiondate)
                         VALUES(:customerid,:snumber,:sonumber,:sodate,:journaldate,:deliverydate,:expirydate,:duedate,:sodiscount,:sototal,:salestax
-                        ,:exclusivetax,:closed,:taxrate,:taxratestd,:salesaccount,:soreturn,:gldescription,:employee_id,:transactiondate)";
+                        ,:exclusivetax,:closed,:taxratestd,:salesaccount,:employee_id,:transactiondate)";
             $stmt = $conn->prepare($strsql);
             $stmt->execute($data);
 
@@ -312,13 +299,12 @@ if ($received_data->action == "AddSales") {
                         'taxrate' => $row->taxrate,
                         'salesac' => $salesac,
                         'stocktype' => $stocktype,
-                        'soreturn' => $received_data->data->soreturn,
                         'employee_id' => "Front-end",
                         'transactiondate' => date("Y-m-d H:i:s"),
                     ];
 
-                    $strsql = "INSERT INTO salesdetail(snumber,sdate,itemid,description,quantity,quantityord,quantitybac,unitprice,discountamount,amount,taxamount,taxrate,salesac,stocktype,soreturn,employee_id,transactiondate)
-                                VALUES(:snumber,:sdate,:itemid,:description,:quantity,:quantityord,:quantitybac,:unitprice,:discountamount,:amount,:taxamount,:taxrate,:salesac,:stocktype,:soreturn,:employee_id,:transactiondate)";
+                    $strsql = "INSERT INTO salesdetail(snumber,sdate,itemid,description,quantity,quantityord,quantitybac,unitprice,discountamount,amount,taxamount,taxrate,salesac,stocktype,employee_id,transactiondate)
+                                VALUES(:snumber,:sdate,:itemid,:description,:quantity,:quantityord,:quantitybac,:unitprice,:discountamount,:amount,:taxamount,:taxrate,:salesac,:stocktype,:employee_id,:transactiondate)";
                     $stmt = $conn->prepare($strsql);
                     $stmt->execute($data);
 
