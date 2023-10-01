@@ -392,7 +392,7 @@ if ($received_data->action == "AddSales") {
             $stmt = $conn->prepare($strsql);
             $stmt->execute([
                 'receiptno' => $received_data->data->receipt->receiptno,
-                'snumber' => $received_data->data->receipt->snumber,
+                'snumber' => $received_data->data->snumber,
             ]);
             $result = $stmt->fetchAll((PDO::FETCH_ASSOC));
 
@@ -402,7 +402,7 @@ if ($received_data->action == "AddSales") {
                 $stmt = $conn->prepare($strsql);
                 $stmt->execute([
                     'receiptno' => $received_data->data->receipt->receiptno,
-                    'snumber' => $received_data->data->receipt->snumber,
+                    'snumber' => $received_data->data->snumber,
                 ]);    
             }
 
@@ -413,7 +413,7 @@ if ($received_data->action == "AddSales") {
                 'receipttype' => $received_data->data->receipt->receipttype,
                 'receiptbook' => $received_data->data->receipt->receiptbook,
                 'amount' => $received_data->data->receipt->amount,
-                'snumber' => $received_data->data->receipt->snumber,
+                'snumber' => $received_data->data->snumber,
                 'employee_id' => "Front-end",
                 'transactiondate' => date("Y-m-d H:i:s"),
             ];
