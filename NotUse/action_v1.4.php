@@ -1,10 +1,4 @@
 <?php
-// ===Version 1.6 (1 Oct 23)===
-// - Update AddSales support receipt transaction
-
-// ===Version 1.5 (30 Sep 23)===
-// - Add ProductToAsset
-
 // ===Version 1.4 (30 Sep 23)===
 // - Edit AddSales ให้รองรับสร้างสัญญาให้บริการก่อนซื้อ
 
@@ -32,7 +26,7 @@ if ($received_data->action == "AddSales") {
     $conn->beginTransaction();
 
     try {
-        // ตรวจสอบว่ามี Sales Order นี้หรือยัง และ posted หรือยัง (ถ้ามีจะเป็น Update/ถ้าไม่มีจะเป็น Add/ถ้า posted แล้วจะไม่สามารถทำอะไรได้)
+        // ตรวจสอบว่ามี Sales Order นี้หรือยัง (ถ้ามีจะเป็น Update ถ้าไม่มีจะเป็น Add)
         $strsql = "SELECT snumber, posted FROM sales WHERE snumber=:snumber";
         $stmt = $conn->prepare($strsql);
         $stmt->execute([
@@ -379,54 +373,10 @@ if ($received_data->action == "AddSales") {
                 }
             }
             #endregion ===Salesdetail===
-        #endregion ===Sales===
+            #endregion ===Sales===
 
-        #region ===Receipt===
-        // ตรวจสอบว่ามีข้อมูลการรับชำระส่งมาหรือไม่ receipt1no ว่างหรือไม่
-        if ($received_data->data->receipt->receiptno == "") {
-            // ไม่ต้องทำอะไร
-            
-        }else{
-            // ตรวจสอบว่า receiptno + snumber ซ้ำหรือไม่ (ถ้าซ้ำลบก่อน Insert)
-            $strsql = "SELECT receiptno, snumber FROM p_receipt WHERE receiptno=:receiptno AND snumber=:snumber";
-            $stmt = $conn->prepare($strsql);
-            $stmt->execute([
-                'receiptno' => $received_data->data->receipt->receiptno,
-                'snumber' => $received_data->data->receipt->snumber,
-            ]);
-            $result = $stmt->fetchAll((PDO::FETCH_ASSOC));
-
-            // ลบ Transaction เดิมออกไปก่อน
-            if (count($result)) {
-                $strsql = "DELETE FROM p_receipt WHERE receiptno=:receiptno AND snumber=:snumber";
-                $stmt = $conn->prepare($strsql);
-                $stmt->execute([
-                    'receiptno' => $received_data->data->receipt->receiptno,
-                    'snumber' => $received_data->data->receipt->snumber,
-                ]);    
-            }
-
-            //Insert p_receipt
-            $data = [
-                'receiptno' => $received_data->data->receipt->receiptno,
-                'receiptdate' => $received_data->data->receipt->receiptdate,
-                'receipttype' => $received_data->data->receipt->receipttype,
-                'receiptbook' => $received_data->data->receipt->receiptbook,
-                'amount' => $received_data->data->receipt->amount,
-                'snumber' => $received_data->data->receipt->snumber,
-                'employee_id' => "Front-end",
-                'transactiondate' => date("Y-m-d H:i:s"),
-            ];
-
-            $strsql = "INSERT INTO p_receipt(receiptno,receiptdate,receipttype,receiptbook,amount,snumber,employee_id,transactiondate) 
-                VALUES(:receiptno,:receiptdate,:receipttype,:receiptbook,:amount,:snumber,:employee_id,:transactiondate)";
-            $stmt = $conn->prepare($strsql);
-            $stmt->execute($data);
-        }
-        #endregion ===Receipt===
-
-        $conn->commit();
-        Response::success($successmsg, 200);
+            $conn->commit();
+            Response::success($successmsg, 200);
         }
     } catch (Exception $e) {
         $conn->rollBack();
@@ -748,66 +698,6 @@ if ($received_data->action == "DeleteSales") {
             die();
         }
     } catch (Exception $e) {
-        $conn->rollBack();
-        $errormsg = $e->getmessage();
-        Response::error($errormsg, 404);
-        die();
-    }
-}
-
-if ($received_data->action == "ProductToAsset") {
-
-    $errormsg = "";
-
-    // ตรวจสอบว่าเลขที่เอกสารซ้ำหรือไม่
-    $strsql = "SELECT docnumber FROM p_producttoasset WHERE docnumber=:docnumber";
-    $stmt = $conn->prepare($strsql);
-    $stmt->execute([
-        'docnumber' => $received_data->data->docnumber
-    ]);
-    $result_p_producttoasset = $stmt->fetchAll((PDO::FETCH_ASSOC));
-
-    // ถ้ามีเลขที่เอกสารนี้อยู่แล้ว
-    if (count($result_p_producttoasset)) {
-        $errormsg .= "This document number (" . $received_data->data->docnumber . ") already exists.";
-        Response::error($errormsg, 404);
-        die();
-    }
-
-    $conn->beginTransaction();
-
-    try {
-        // Insert into p_producttoassetdetail
-        foreach ($received_data->data->detail as $row) {
-                $strsql = "INSERT INTO p_producttoassetdetail(docnumber, itemid, serialno, employee_id, transactiondate)
-                                VALUES(:docnumber, :itemid, :serialno, :employee_id, :transactiondate)";
-                $stmt = $conn->prepare($strsql);
-                $stmt->execute([
-                    'docnumber' => $received_data->data->docnumber,
-                    'itemid' => $row->itemid,
-                    'serialno' => $row->serialno,
-                    'employee_id' => "Front-end",
-                    'transactiondate' => date("Y-m-d H:i:s")
-                ]);
-        }
-
-        // Insert into p_producttoasset
-        $strsql = "INSERT INTO p_producttoasset(docnumber, docdate, createby, employee_id, transactiondate)
-                        VALUES(:docnumber, :docdate, :createby, :employee_id, :transactiondate)";
-        $stmt = $conn->prepare($strsql);
-        $stmt->execute([
-            'docnumber' => $received_data->data->docnumber,
-            'docdate' => $received_data->data->docdate,
-            'createby' => $received_data->data->createby,
-            'employee_id' => "Front-end",
-            'transactiondate' => date("Y-m-d H:i:s")
-        ]);
-
-        $conn->commit();
-        Response::success('Success', 200);
-
-    } catch (Exception $e) {
-        
         $conn->rollBack();
         $errormsg = $e->getmessage();
         Response::error($errormsg, 404);

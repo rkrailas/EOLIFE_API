@@ -1,0 +1,32 @@
+===Create Receipt Table===
+
+CREATE TABLE p_receipt(
+    id serial PRIMARY KEY,
+    receiptno character varying(20),
+    receiptdate timestamp without time zone,
+    receipttype character varying(50),
+	receiptbook character varying(100),    
+	amount numeric(20,4) DEFAULT 0,
+    snumber character varying(20),
+    employee_id character varying(20),
+    transactiondate timestamp without time zone
+);
+
+===Create ProductToAsset Table===
+CREATE TABLE p_producttoasset(
+    id serial PRIMARY KEY,
+    docnumber character varying(10),
+    docdate timestamp without time zone,
+	createby character varying(100),
+    employee_id character varying(20),
+    transactiondate timestamp without time zone
+);
+
+CREATE TABLE p_producttoassetdetail(
+    id serial PRIMARY KEY,
+    docnumber character varying(10),
+    itemid character varying(40),
+    serialno character varying(30),
+    employee_id character varying(20),
+    transactiondate timestamp without time zone
+);
